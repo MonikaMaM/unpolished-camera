@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="UNPOLISHED">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>UNPOLISHED</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #fff;
+      position: fixed;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #app {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background: #000;
+    }
+
+    /* === START SCREEN === */
+    #start-screen {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 40px;
+      gap: 60px;
+    }
+
+    #start-screen.hidden { display: none; }
+
+    .logo {
+      text-align: center;
+    }
+
+    .logo-line-1 {
+      font-size: 13px;
+      color: #fff;
+      letter-spacing: 0.35em;
+      margin-bottom: 20px;
+      font-weight: 400;
+    }
+
+    .logo-line-2 {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      line-height: 1;
+    }
+
+    .logo-line-3 {
+      font-size: 12px;
+      color: #fff;
+      letter-spacing: 0.3em;
+      margin-top: 18px;
+      font-weight: 400;
+    }
+
+    .logo-divider {
+      width: 60px;
+      height: 1px;
+      background: #fff;
+      margin: 20px auto 0;
+    }
+
+    .start-btn {
+      background: #fff;
+      color: #000;
+      border: none;
+      padding: 18px 44px;
+      font-family: inherit;
+      font-size: 13px;
+      letter-spacing: 0.25em;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .start-btn:active { background: #ccc; }
+
+    .start-info {
+      text-align: center;
+      font-size: 12px;
+      color: #fff;
+      letter-spacing: 0.2em;
+      line-height: 2;
+      font-weight: 400;
+    }
+
+    /* === VIEWFINDER === */
+    #viewfinder-container {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #video {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      min-width: 100%;
+      min-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: cover;
+      visibility: hidden;
+    }
+
+    #canvas-preview {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* === FRAME OVERLAY === */
+    .frame-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .frame-corner {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-color: #fff;
+    }
+
+    .frame-corner.tl { top: 20px; left: 20px; border-top: 1px solid; border-left: 1px solid; }
+    .frame-corner.tr { top: 20px; right: 20px; border-top: 1px solid; border-right: 1px solid; }
+    .frame-corner.bl { bottom: 20px; left: 20px; border-bottom: 1px solid; border-left: 1px solid; }
+    .frame-corner.br { bottom: 20px; right: 20px; border-bottom: 1px solid; border-right: 1px solid; }
+
+    /* === TOP BAR === */
+    .top-bar {
+      position: absolute;
+      top: env(safe-area-inset-top, 0);
+      left: 0;
+      right: 0;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      z-index: 20;
+      color: #fff;
+      pointer-events: none;
+    }
+
+    .top-bar .film-name {
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      font-weight: 500;
+    }
+
+    .top-bar .frame-count {
+      font-variant-numeric: tabular-nums;
+      font-size: 15px;
+      letter-spacing: 0.1em;
+      font-weight: 500;
+    }
+
+    /* === BOTTOM CONTROLS === */
+    .bottom-controls {
+      position: relative;
+      background: #000;
+      padding: 20px 0 calc(20px + env(safe-area-inset-bottom, 0)) 0;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* Film selector */
+    .film-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 0 24px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .film-strip::-webkit-scrollbar { display: none; }
+
+    .film-tab {
+      flex: 0 0 auto;
+      padding: 10px 13px;
+      border: 0.5px solid #fff;
+      background: transparent;
+      color: #fff;
+      font-family: inherit;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      cursor: pointer;
+      scroll-snap-align: center;
+      white-space: nowrap;
+      transition: all 0.15s;
+      font-weight: 400;
+    }
+
+    .film-tab.active {
+      background: #fff;
+      color: #000;
+      border-color: #fff;
+      font-weight: 700;
+    }
+
+    /* Shutter row */
+    .shutter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .side-btn {
+      width: 44px;
+      height: 44px;
+      border: none;
+      background: transparent;
+      color: #fff;
+      font-family: inherit;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 500;
+    }
+
+    .side-btn:active { opacity: 0.6; }
+
+    #shutter {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      background: transparent;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.08s;
+    }
+
+    #shutter::before {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.08s;
+    }
+
+    #shutter:active { transform: scale(0.94); }
+    #shutter:active::before { transform: scale(0.85); }
+
+    #shutter:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    /* === FLASH === */
+    .flash-overlay {
+      position: absolute;
+      inset: 0;
+      background: #fff;
+      z-index: 30;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .flash-overlay.flash {
+      animation: flash 0.18s ease-out;
+    }
+
+    @keyframes flash {
+      0% { opacity: 0; }
+      30% { opacity: 0.9; }
+      100% { opacity: 0; }
+    }
+
+    /* === PREVIEW SCREEN === */
+    #preview-screen {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      z-index: 50;
+      display: none;
+      flex-direction: column;
+    }
+
+    #preview-screen.show { display: flex; }
+
+    #preview-image-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+    }
+
+    #preview-image {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .preview-info {
+      position: absolute;
+      top: calc(20px + env(safe-area-inset-top, 0));
+      left: 24px;
+      right: 24px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .preview-actions {
+      display: flex;
+      gap: 1px;
+      background: rgba(255,255,255,0.15);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    .preview-btn {
+      flex: 1;
+      padding: 22px;
+      background: #000;
+      color: #fff;
+      border: none;
+      font-family: inherit;
+      font-size: 13px;
+      letter-spacing: 0.25em;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .preview-btn.primary {
+      background: #fff;
+      color: #000;
+    }
+
+    .preview-btn:active { opacity: 0.7; }
+
+    /* === ERROR MESSAGE === */
+    #error-msg {
+      position: absolute;
+      bottom: 50%;
+      left: 24px;
+      right: 24px;
+      padding: 20px;
+      background: rgba(255,255,255,0.05);
+      border: 0.5px solid #fff;
+      color: #fff;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      line-height: 1.6;
+      text-align: center;
+      z-index: 200;
+      display: none;
+      font-weight: 400;
+    }
+
+    #error-msg.show { display: block; }
+  </style>
+</head>
+<body>
+  <div id="app">
+
+    <!-- START SCREEN -->
+    <div id="start-screen">
+      <div class="logo">
+        <div class="logo-line-1">MONIKA MANOWSKA</div>
+        <div class="logo-line-2">UNPOLISHED</div>
+        <div class="logo-line-3">PRESENCE — N°01</div>
+        <div class="logo-divider"></div>
+      </div>
+      <button class="start-btn" id="start-btn">LOAD FILM</button>
+      <div class="start-info">
+        POINT &amp; SHOOT<br>
+        ANALOG SOUL · DIGITAL BODY
+      </div>
+    </div>
+
+    <!-- VIEWFINDER -->
+    <div id="viewfinder-container">
+      <video id="video" playsinline autoplay muted></video>
+      <canvas id="canvas-preview"></canvas>
+
+      <div class="frame-overlay">
+        <div class="frame-corner tl"></div>
+        <div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div>
+        <div class="frame-corner br"></div>
+      </div>
+
+      <div class="top-bar">
+        <span class="film-name" id="current-film">PORTRA 400</span>
+        <span class="frame-count" id="frame-count">001</span>
+      </div>
+
+      <div class="flash-overlay" id="flash"></div>
+    </div>
+
+    <!-- BOTTOM CONTROLS -->
+    <div class="bottom-controls">
+      <div class="film-strip" id="film-strip"></div>
+      <div class="shutter-row">
+        <button class="side-btn" id="flip-btn" title="Byt kamera">⇄</button>
+        <button id="shutter" disabled></button>
+        <button class="side-btn" id="info-btn" title="Info">i</button>
+      </div>
+    </div>
+
+    <!-- PREVIEW SCREEN -->
+    <div id="preview-screen">
+      <div class="preview-info">
+        <span id="preview-film">PORTRA 400</span>
+        <span id="preview-num">001</span>
+      </div>
+      <div id="preview-image-wrap">
+        <img id="preview-image" alt="">
+      </div>
+      <div class="preview-actions">
+        <button class="preview-btn" id="discard-btn">FÖRKASTA</button>
+        <button class="preview-btn primary" id="save-btn">SPARA</button>
+      </div>
+    </div>
+
+    <div id="error-msg"></div>
+
+  </div>
+
+  <script src="films.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
