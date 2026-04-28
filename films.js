@@ -1,32 +1,25 @@
 // =====================================================================
 // UNPOLISHED PRESENCE — FILM PRESETS
-// Varje film har sin egna ton, korn, kurva, halation, vinjett
 // =====================================================================
 
 const FILMS = {
   PORTRA_400: {
     name: 'PORTRA 400',
     short: 'PORTRA 400',
-    // Färgmatris: subtila varma hudtoner, mjuk kontrast, lyft skuggor
     contrast: 1.08,
     saturation: 0.92,
-    temperature: 8,        // varmare
-    tint: 3,               // lite magenta
-    shadowLift: 12,        // mjuka skuggor
-    highlightRoll: 8,      // mjuka highlights
-    // RGB-skift (toning)
+    temperature: 8,
+    tint: 3,
+    shadowLift: 12,
+    highlightRoll: 8,
     rShift: 4,
     gShift: 0,
     bShift: -4,
-    // Korn
     grain: 0.06,
     grainSize: 1,
-    // Vinjett
     vignette: 0.15,
-    // Halation (röd glow runt highlights)
     halation: 0.08,
     halationColor: [255, 180, 150],
-    // Färgton
     bw: false,
   },
 
@@ -36,8 +29,8 @@ const FILMS = {
     contrast: 1.28,
     saturation: 1.18,
     temperature: 4,
-    tint: -2,              // lite cyan
-    shadowLift: -8,        // djupa skuggor
+    tint: -2,
+    shadowLift: -8,
     highlightRoll: 4,
     rShift: 6,
     gShift: -2,
@@ -55,9 +48,9 @@ const FILMS = {
     short: 'CINESTILL 800T',
     contrast: 1.05,
     saturation: 0.85,
-    temperature: -18,      // tungsten / blått
+    temperature: -18,
     tint: 4,
-    shadowLift: 18,        // mjuka skuggor
+    shadowLift: 18,
     highlightRoll: 6,
     rShift: -4,
     gShift: -2,
@@ -65,7 +58,7 @@ const FILMS = {
     grain: 0.10,
     grainSize: 1.2,
     vignette: 0.18,
-    halation: 0.32,        // KARAKTÄRISTISK röd halation
+    halation: 0.32,
     halationColor: [255, 80, 60],
     bw: false,
   },
@@ -82,13 +75,13 @@ const FILMS = {
     rShift: 0,
     gShift: 0,
     bShift: 0,
-    grain: 0.14,           // tydligt korn
+    grain: 0.14,
     grainSize: 1.1,
     vignette: 0.20,
     halation: 0,
     halationColor: [255, 255, 255],
     bw: true,
-    bwMix: { r: 0.30, g: 0.55, b: 0.15 }, // klassisk pankromatisk mix
+    bwMix: { r: 0.30, g: 0.55, b: 0.15 },
   },
 
   FP_3000B: {
@@ -98,12 +91,12 @@ const FILMS = {
     saturation: 0,
     temperature: 0,
     tint: 0,
-    shadowLift: 14,        // mjukare skuggor
-    highlightRoll: 10,     // mjukare highlights
+    shadowLift: 14,
+    highlightRoll: 10,
     rShift: 0,
     gShift: 0,
     bShift: 0,
-    grain: 0.05,           // slätare än Tri-X
+    grain: 0.05,
     grainSize: 0.8,
     vignette: 0.12,
     halation: 0.06,
@@ -116,20 +109,87 @@ const FILMS = {
     name: 'EKTAR 100',
     short: 'EKTAR 100',
     contrast: 1.22,
-    saturation: 1.30,      // hög mättnad
+    saturation: 1.30,
     temperature: -2,
-    tint: -3,              // grön/cyan
+    tint: -3,
     shadowLift: -4,
     highlightRoll: 5,
     rShift: -2,
     gShift: 4,
     bShift: 2,
-    grain: 0.025,          // finkornig
+    grain: 0.025,
     grainSize: 0.7,
     vignette: 0.18,
     halation: 0.03,
     halationColor: [255, 220, 200],
     bw: false,
+  },
+
+  // === NYA FILMER ===
+
+  // Lomography Color Negative 800 — mättat, varma röda, klassisk Lomo
+  LOMO_COLOR_800: {
+    name: 'LOMO COLOR 800',
+    short: 'LOMO 800',
+    contrast: 1.25,
+    saturation: 1.35,
+    temperature: 10,
+    tint: 2,
+    shadowLift: 6,
+    highlightRoll: 4,
+    rShift: 10,
+    gShift: -2,
+    bShift: -6,
+    grain: 0.09,
+    grainSize: 1.1,
+    vignette: 0.32,
+    halation: 0.12,
+    halationColor: [255, 140, 100],
+    bw: false,
+  },
+
+  // LomoChrome Purple — grönt -> lila/magenta, blått -> guld/orange
+  LOMOCHROME_PURPLE: {
+    name: 'LOMOCHROME PURPLE',
+    short: 'LOMO PURPLE',
+    contrast: 1.15,
+    saturation: 1.10,
+    temperature: 0,
+    tint: 0,
+    shadowLift: 8,
+    highlightRoll: 6,
+    rShift: 0,
+    gShift: 0,
+    bShift: 0,
+    grain: 0.07,
+    grainSize: 1.0,
+    vignette: 0.20,
+    halation: 0.10,
+    halationColor: [220, 140, 200],
+    bw: false,
+    channelSwap: 'purple',
+  },
+
+  // T-Max P3200 — fin för hud, mjukt korn
+  TMAX_P3200: {
+    name: 'T-MAX P3200',
+    short: 'T-MAX 3200',
+    contrast: 1.18,
+    saturation: 0,
+    temperature: 0,
+    tint: 0,
+    shadowLift: 10,
+    highlightRoll: 12,
+    rShift: 0,
+    gShift: 0,
+    bShift: 0,
+    grain: 0.10,
+    grainSize: 0.9,
+    vignette: 0.15,
+    halation: 0,
+    halationColor: [255, 255, 255],
+    bw: true,
+    bwMix: { r: 0.42, g: 0.42, b: 0.16 },
   },
 };
 
@@ -138,7 +198,10 @@ const FILM_ORDER = [
   'PORTRA_400',
   'KODACHROME_64',
   'CINESTILL_800T',
-  'TRI_X_400',
-  'FP_3000B',
   'EKTAR_100',
+  'LOMO_COLOR_800',
+  'LOMOCHROME_PURPLE',
+  'TRI_X_400',
+  'TMAX_P3200',
+  'FP_3000B',
 ];
