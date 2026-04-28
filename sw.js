@@ -2,7 +2,7 @@
 // UNPOLISHED — SERVICE WORKER (offline cache)
 // =====================================================================
 
-const CACHE_NAME = 'unpolished-v1';
+const CACHE_NAME = 'unpolished-v2';
 const ASSETS = [
   './',
   './index.html',
