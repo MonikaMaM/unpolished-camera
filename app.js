@@ -228,6 +228,20 @@
       let g = data[i + 1];
       let b = data[i + 2];
 
+      // Channel swap för LomoChrome Purple (BEFORE BW conversion)
+      if (film.channelSwap === 'purple') {
+        // Roterar färgkanalerna: grönt -> lila/magenta, blått -> guld/gul
+        // R kanal: blandning av original R + boost från grönt (gröna områden blir purple)
+        // G kanal: dämpad
+        // B kanal: blandning av blått + grönt (för magenta-effekt på grönt)
+        const origR = r;
+        const origG = g;
+        const origB = b;
+        r = origR * 0.7 + origG * 0.55;       // grönt blir rödaktigt/magenta
+        g = origG * 0.45 + origB * 0.25;      // dämpa grönt, lite blått in
+        b = origB * 0.85 + origG * 0.45;      // grönt blir lite blått (-> magenta/purple)
+      }
+
       // BW conversion
       if (film.bw) {
         const mix = film.bwMix;
@@ -240,7 +254,7 @@
       g = contrastLUT[g];
       b = contrastLUT[b];
 
-      // Saturation (kring luminans)
+      // Saturation (bara för färgfilm)
       if (!film.bw && saturation !== 1) {
         const lum = 0.299 * r + 0.587 * g + 0.114 * b;
         r = lum + (r - lum) * saturation;
@@ -248,17 +262,15 @@
         b = lum + (b - lum) * saturation;
       }
 
-      // Temperatur (R upp / B ner = varmare)
-      r += temp;
-      b -= temp;
-
-      // Tint (G ner / magenta upp)
-      g -= tint;
-
-      // RGB shift (film characteristic)
-      r += rShift;
-      g += gShift;
-      b += bShift;
+      // Temperatur, tint, RGB shift — HOPPA ÖVER för BW (annars förstörs gråtonerna)
+      if (!film.bw) {
+        r += temp;
+        b -= temp;
+        g -= tint;
+        r += rShift;
+        g += gShift;
+        b += bShift;
+      }
 
       data[i] = Math.max(0, Math.min(255, r));
       data[i + 1] = Math.max(0, Math.min(255, g));
@@ -268,11 +280,23 @@
     // Korn (random noise per pixel)
     if (film.grain > 0) {
       const grainAmount = film.grain * 255;
-      for (let i = 0; i < data.length; i += 4) {
-        const n = (Math.random() - 0.5) * grainAmount;
-        data[i] = Math.max(0, Math.min(255, data[i] + n));
-        data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n));
-        data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n));
+      if (film.bw) {
+        // För BW: samma värde på alla kanaler för att hålla det svartvitt
+        for (let i = 0; i < data.length; i += 4) {
+          const n = (Math.random() - 0.5) * grainAmount;
+          data[i] = Math.max(0, Math.min(255, data[i] + n));
+          data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n));
+          data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n));
+        }
+      } else {
+        // För färg: lite färgvariation i kornet (mer realistiskt)
+        for (let i = 0; i < data.length; i += 4) {
+          const n = (Math.random() - 0.5) * grainAmount;
+          const variation = (Math.random() - 0.5) * grainAmount * 0.3;
+          data[i] = Math.max(0, Math.min(255, data[i] + n + variation));
+          data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n));
+          data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n - variation));
+        }
       }
     }
 
