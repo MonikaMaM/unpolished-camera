@@ -188,8 +188,54 @@
   }
 
   // === FILM FILTER PIPELINE ===
-  // Applicerar: BW→tint→kontrast→saturation→temp/tint→shadow/highlight→rgb shift→halation→vinjett→korn
   function applyFilmFilter(ctx, canvas, film) {
+    if (film.bw) {
+      applyBWFilter(ctx, canvas, film);
+    } else {
+      applyColorFilter(ctx, canvas, film);
+    }
+  }
+
+  // BW path — använder canvas built-in filter (garanterat svartvitt)
+  function applyBWFilter(ctx, canvas, film) {
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // Hämta nuvarande bild
+    const tmp = document.createElement('canvas');
+    tmp.width = w;
+    tmp.height = h;
+    const tctx = tmp.getContext('2d');
+    tctx.drawImage(canvas, 0, 0);
+
+    // Rita tillbaka med CSS-filter (grayscale + kontrast + brightness)
+    ctx.clearRect(0, 0, w, h);
+    ctx.filter = film.cssFilter || 'grayscale(1)';
+    ctx.drawImage(tmp, 0, 0);
+    ctx.filter = 'none';
+
+    // Lägg till film-korn (samma värde på alla kanaler så det förblir svartvitt)
+    if (film.grain > 0) {
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const data = imageData.data;
+      const grainAmount = film.grain * 255;
+      for (let i = 0; i < data.length; i += 4) {
+        const n = (Math.random() - 0.5) * grainAmount;
+        data[i] = Math.max(0, Math.min(255, data[i] + n));
+        data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n));
+        data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n));
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    // Vinjett
+    if (film.vignette > 0) {
+      applyVignette(ctx, canvas, film.vignette);
+    }
+  }
+
+  // Color path — pixel-baserad pipeline för färgfilm
+  function applyColorFilter(ctx, canvas, film) {
     const w = canvas.width;
     const h = canvas.height;
     const imageData = ctx.getImageData(0, 0, w, h);
@@ -205,16 +251,14 @@
     const gShift = film.gShift;
     const bShift = film.bShift;
 
-    // Förberäknad LUT för kontrast
+    // Förberäknad LUT
     const contrastLUT = new Uint8ClampedArray(256);
     for (let i = 0; i < 256; i++) {
       let v = (i - 128) * contrast + 128;
-      // Shadow lift
       if (i < 80) {
         const t = (80 - i) / 80;
         v += shadowLift * t;
       }
-      // Highlight rolloff
       if (i > 180) {
         const t = (i - 180) / 75;
         v -= highlightRoll * t;
@@ -222,87 +266,52 @@
       contrastLUT[i] = Math.max(0, Math.min(255, v));
     }
 
-    // Pixel pipeline
     for (let i = 0; i < data.length; i += 4) {
       let r = data[i];
       let g = data[i + 1];
       let b = data[i + 2];
-
-      // Channel swap för LomoChrome Purple (BEFORE BW conversion)
-      if (film.channelSwap === 'purple') {
-        // Roterar färgkanalerna: grönt -> lila/magenta, blått -> guld/gul
-        // R kanal: blandning av original R + boost från grönt (gröna områden blir purple)
-        // G kanal: dämpad
-        // B kanal: blandning av blått + grönt (för magenta-effekt på grönt)
-        const origR = r;
-        const origG = g;
-        const origB = b;
-        r = origR * 0.7 + origG * 0.55;       // grönt blir rödaktigt/magenta
-        g = origG * 0.45 + origB * 0.25;      // dämpa grönt, lite blått in
-        b = origB * 0.85 + origG * 0.45;      // grönt blir lite blått (-> magenta/purple)
-      }
-
-      // BW conversion
-      if (film.bw) {
-        const mix = film.bwMix;
-        const lum = r * mix.r + g * mix.g + b * mix.b;
-        r = g = b = lum;
-      }
 
       // Kontrast + skugga/highlight via LUT
       r = contrastLUT[r];
       g = contrastLUT[g];
       b = contrastLUT[b];
 
-      // Saturation (bara för färgfilm)
-      if (!film.bw && saturation !== 1) {
+      // Saturation
+      if (saturation !== 1) {
         const lum = 0.299 * r + 0.587 * g + 0.114 * b;
         r = lum + (r - lum) * saturation;
         g = lum + (g - lum) * saturation;
         b = lum + (b - lum) * saturation;
       }
 
-      // Temperatur, tint, RGB shift — HOPPA ÖVER för BW (annars förstörs gråtonerna)
-      if (!film.bw) {
-        r += temp;
-        b -= temp;
-        g -= tint;
-        r += rShift;
-        g += gShift;
-        b += bShift;
-      }
+      // Temperatur, tint, RGB-shift
+      r += temp;
+      b -= temp;
+      g -= tint;
+      r += rShift;
+      g += gShift;
+      b += bShift;
 
       data[i] = Math.max(0, Math.min(255, r));
       data[i + 1] = Math.max(0, Math.min(255, g));
       data[i + 2] = Math.max(0, Math.min(255, b));
     }
 
-    // Korn (random noise per pixel)
+    // Korn med liten färgvariation
     if (film.grain > 0) {
       const grainAmount = film.grain * 255;
-      if (film.bw) {
-        // För BW: samma värde på alla kanaler för att hålla det svartvitt
-        for (let i = 0; i < data.length; i += 4) {
-          const n = (Math.random() - 0.5) * grainAmount;
-          data[i] = Math.max(0, Math.min(255, data[i] + n));
-          data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n));
-          data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n));
-        }
-      } else {
-        // För färg: lite färgvariation i kornet (mer realistiskt)
-        for (let i = 0; i < data.length; i += 4) {
-          const n = (Math.random() - 0.5) * grainAmount;
-          const variation = (Math.random() - 0.5) * grainAmount * 0.3;
-          data[i] = Math.max(0, Math.min(255, data[i] + n + variation));
-          data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n));
-          data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n - variation));
-        }
+      for (let i = 0; i < data.length; i += 4) {
+        const n = (Math.random() - 0.5) * grainAmount;
+        const variation = (Math.random() - 0.5) * grainAmount * 0.3;
+        data[i] = Math.max(0, Math.min(255, data[i] + n + variation));
+        data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n));
+        data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n - variation));
       }
     }
 
     ctx.putImageData(imageData, 0, 0);
 
-    // Halation (röd glow runt highlights — appliceras som blur-overlay)
+    // Halation
     if (film.halation > 0) {
       applyHalation(ctx, canvas, film.halationColor, film.halation);
     }
